@@ -1,9 +1,8 @@
 import * as React from "react";
-import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
 import Slide from "@mui/material/Slide";
 import { TransitionProps } from "@mui/material/transitions";
-import { IUsers, validUser } from "../../reducers/usersState";
+import {  IUsers, IUsersState, setLoadingAddUser, setModalAdd } from "../../reducers/usersState";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 
 const Transition = React.forwardRef(function Transition(
@@ -23,6 +22,7 @@ export default function AddUserModal() {
     (state) => state.usersState.loadingAddUser
   );
   const formErrors = useAppSelector((state) => state.usersState.formErrors);
+  const modalAdd = useAppSelector((state) => state.usersState.modalAdd);
 
   const [validation, setValidation] = React.useState({
     firstName: false,
@@ -32,14 +32,14 @@ export default function AddUserModal() {
     city: false,
   });
 
-  const [open, setOpen] = React.useState(false);
+  // const [open, setOpen] = React.useState(false);
 
   const handleClickOpen = (): void => {
-    setOpen(true);
+    dispatch(setModalAdd(true));
   };
 
   const handleClose = (): void => {
-    setOpen(false);
+    dispatch(setModalAdd(false));
   };
 
   const [firstName, setFirstName] = React.useState<string>("");
@@ -55,29 +55,82 @@ export default function AddUserModal() {
     setStatus(event.target.value);
   };
 
+  const isValidEmail = (email: string): boolean => {
+    const emailRegex: RegExp = /\S+@\S+\.\S+/;
+    const trimmedEmail: string = email.trim(); // Remove leading and trailing whitespace
+    return emailRegex.test(trimmedEmail);
+  };
+
+  const isValidTajikPhoneNumber = (phone: string): boolean => {
+    const phoneRegex: RegExp = /^\992\d{9}$/;
+    const trimmedPhone: string = phone.trim(); // Remove leading and trailing whitespace
+    return phoneRegex.test(trimmedPhone);
+  };
+
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>): void => {
     event.preventDefault();
 
-    let newUser: IUsers = {
-      id: `${Date.now()}`,
-      name: firstName,
-      surname: lastName,
-      email: email,
-      status: status === "true" ? true : false,
-      phone: phone,
-      city: city,
-    };
+    // let newUser: IUsers = {
+    //   id: `${Date.now()}`,
+    //   name: firstName,
+    //   surname: lastName,
+    //   email: email,
+    //   status: status === "true" ? true : false,
+    //   phone: phone,
+    //   city: city,
+    // };
 
-    dispatch(validUser(newUser));
+    const savedUser: Partial<IUsers> = {};
+    const errors: Partial<IUsersState["formErrors"]> = {};
+
+    if (
+      firstName.trim() === "" ||
+      lastName.trim() === "" ||
+      email.trim() === "" ||
+      phone.trim() === "" ||
+      city.trim() === ""
+    ) {
+      alert("Please field all of this fields out");
+    } else {
+      savedUser.name = firstName;
+      savedUser.surname = lastName;
+
+      if (!email || !isValidEmail(email)) {
+        errors.email = "Please enter a valid email address";
+      } else {
+        errors.email = "";
+        savedUser.email = email;
+      }
+
+      if (!phone || !isValidTajikPhoneNumber(phone)) {
+        errors.phone = "Please enter a valid Tajik phone number";
+      } else {
+        errors.phone = "";
+        savedUser.phone = phone;
+      }
+      // formErrors = { ...state.formErrors, ...errors };
+
+      savedUser.city = city;
+      savedUser.status = status;
+      savedUser.id = id;
+      dispatch(setLoadingAddUser(true));
+      setTimeout(() => {
+        dispatch(setLoadingAddUser(false));
+      }, 4000);
+    }
+
   };
 
   return (
     <React.Fragment>
-      <Button variant="contained" color="error" onClick={handleClickOpen}>
+      <button
+        className="bg-red-500 text-[15px] px-5 py-1 rounded-lg text-white"
+        onClick={handleClickOpen}
+      >
         Add new User
-      </Button>
+      </button>
       <Dialog
-        open={open}
+        open={modalAdd}
         TransitionComponent={Transition}
         keepMounted
         onClose={handleClose}
@@ -85,7 +138,7 @@ export default function AddUserModal() {
       >
         <form
           action=""
-          className="p-4 w-[300px] flex flex-col gap-2"
+          className="p-4 w-[254px] flex flex-col gap-2"
           onSubmit={handleSubmit}
         >
           <div className="block_close_modal_button flex justify-end">
@@ -114,7 +167,7 @@ export default function AddUserModal() {
               className={`border-[1px] ${
                 (validation.firstName && firstName.trim() === "") ||
                 formErrors.name !== ""
-                  ? `border-red-400 `
+                  ? `border-red-400`
                   : `border-gray-400`
               } px-2 py-1 rounded-[5px] outline-none text-[14px]`}
               value={firstName}
@@ -353,15 +406,14 @@ export default function AddUserModal() {
               </span>
             )}
           </div>
-          <Button
-            variant="contained"
-            color="success"
-            sx={{ marginTop: `20px` }}
+          
+          <button
+            className="bg-red-500 text-[15px] px-5 py-1 rounded-lg text-white disabled:bg-red-400 mt-3"
             type="submit"
             disabled={loadingAddUser}
-          >
-            {loadingAddUser ? `Loading...` : `Add`}
-          </Button>
+            >
+            {loadingAddUser ? `Loading...` : `ADD`}
+          </button>
         </form>
       </Dialog>
     </React.Fragment>

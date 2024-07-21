@@ -1,7 +1,7 @@
 import { createSlice } from "@reduxjs/toolkit";
 import type { PayloadAction } from "@reduxjs/toolkit";
 import type { RootState } from "../store/store";
-import { getUsers } from "../api/api";
+import { getUsers, postUser } from "../api/api";
 
 export interface IUsers {
   name: string;
@@ -24,6 +24,8 @@ export interface IFormErrors {
 // Define a type for the slice state
 export interface IUsersState {
   users: IUsers[];
+  modalAdd: boolean;
+  savedUsers: IUsers;
   loadingUsers: boolean;
   formErrors: IFormErrors;
   loadingAddUser: boolean;
@@ -37,6 +39,16 @@ export interface TableUsersProps {
 // Define the initial state using that type
 const initialState: IUsersState = {
   users: [],
+  modalAdd: false,
+  savedUsers: {
+    name: "",
+    surname: "",
+    email: "",
+    status: false,
+    city: "",
+    phone: "",
+    id: "",
+  },
   loadingUsers: false,
   formErrors: {
     name: "",
@@ -53,16 +65,13 @@ export const usersSlice = createSlice({
   // `createSlice` will infer the state type from the `initialState` argument
   initialState,
   reducers: {
+    setModalAdd(state: IUsersState, action: PayloadAction<boolean>) {
+      state.modalAdd = action.payload
+    },
     setLoadingAddUser(state: IUsersState, action: PayloadAction<boolean>) {
       state.loadingAddUser = action.payload;
     },
-    validUser(state: IUsersState, {payload}: PayloadAction<IUsers>) {
-      if (payload.phone.length > 9) {
-        state.formErrors.phone = "Number phone must be 9 numbers"
-      }
-
-
-    }
+    
   },
   extraReducers(builder) {
     builder
@@ -82,7 +91,7 @@ export const usersSlice = createSlice({
   },
 });
 
-export const {setLoadingAddUser, validUser} = usersSlice.actions;
+export const { setModalAdd,setLoadingAddUser } = usersSlice.actions;
 
 // Other code such as selectors can use the imported `RootState` type
 export const selectCount = (state: RootState) => state.usersState;
