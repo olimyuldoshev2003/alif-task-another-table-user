@@ -2,8 +2,21 @@ import * as React from "react";
 import Dialog from "@mui/material/Dialog";
 import Slide from "@mui/material/Slide";
 import { TransitionProps } from "@mui/material/transitions";
-import {  IUsers, IUsersState, setLoadingAddUser, setModalAdd } from "../../reducers/usersState";
+import {
+  IUsers,
+  setCity,
+  setEmail,
+  setFirstName,
+  setIsCorrectForm,
+  setLastName,
+  setLoadingAddUser,
+  setModalAdd,
+  setPhone,
+  setStatus,
+  validUser,
+} from "../../reducers/usersState";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
+import { postUser } from "../../api/api";
 
 const Transition = React.forwardRef(function Transition(
   props: TransitionProps & {
@@ -23,6 +36,20 @@ export default function AddUserModal() {
   );
   const formErrors = useAppSelector((state) => state.usersState.formErrors);
   const modalAdd = useAppSelector((state) => state.usersState.modalAdd);
+  const isCorrectForm = useAppSelector(
+    (state) => state.usersState.isCorrectForm
+  );
+  const firstName = useAppSelector((state) => state.usersState.firstName);
+  const lastName = useAppSelector((state) => state.usersState.lastName);
+  const email = useAppSelector((state) => state.usersState.email);
+  const status = useAppSelector((state) => state.usersState.status);
+  const phone = useAppSelector((state) => state.usersState.phone);
+  const city = useAppSelector((state) => state.usersState.city);
+
+  const savedUsers: IUsers = useAppSelector(
+    (state) => state.usersState.savedUsers
+  );
+  const users = useAppSelector((state) => state.usersState.users);
 
   const [validation, setValidation] = React.useState({
     firstName: false,
@@ -42,84 +69,55 @@ export default function AddUserModal() {
     dispatch(setModalAdd(false));
   };
 
-  const [firstName, setFirstName] = React.useState<string>("");
-  const [lastName, setLastName] = React.useState<string>("");
-  const [email, setEmail] = React.useState<string>("");
-  const [status, setStatus] = React.useState<string>("");
-  const [phone, setPhone] = React.useState<string>("");
-  const [city, setCity] = React.useState<string>("");
-
   const handleStatusChange = (
     event: React.ChangeEvent<HTMLSelectElement>
   ): void => {
-    setStatus(event.target.value);
-  };
-
-  const isValidEmail = (email: string): boolean => {
-    const emailRegex: RegExp = /\S+@\S+\.\S+/;
-    const trimmedEmail: string = email.trim(); // Remove leading and trailing whitespace
-    return emailRegex.test(trimmedEmail);
-  };
-
-  const isValidTajikPhoneNumber = (phone: string): boolean => {
-    const phoneRegex: RegExp = /^\992\d{9}$/;
-    const trimmedPhone: string = phone.trim(); // Remove leading and trailing whitespace
-    return phoneRegex.test(trimmedPhone);
+    dispatch(setStatus(event.target.value));
   };
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>): void => {
     event.preventDefault();
 
-    // let newUser: IUsers = {
-    //   id: `${Date.now()}`,
-    //   name: firstName,
-    //   surname: lastName,
-    //   email: email,
-    //   status: status === "true" ? true : false,
-    //   phone: phone,
-    //   city: city,
-    // };
+    let newUser: IUsers = {
+      id: `${Date.now()}`,
+      name: firstName,
+      surname: lastName,
+      email: email,
+      status: status === "true" ? true : false,
+      phone: phone,
+      city: city,
+    };
 
-    const savedUser: Partial<IUsers> = {};
-    const errors: Partial<IUsersState["formErrors"]> = {};
+    dispatch(validUser(newUser));
+  };
 
-    if (
-      firstName.trim() === "" ||
-      lastName.trim() === "" ||
-      email.trim() === "" ||
-      phone.trim() === "" ||
-      city.trim() === ""
-    ) {
-      alert("Please field all of this fields out");
-    } else {
-      savedUser.name = firstName;
-      savedUser.surname = lastName;
+  React.useEffect(() => {
+    if (isCorrectForm) {
+      // Check if there's a duplicate user based on name, surname, email, and phone
+      const isDuplicate = users.some(
+        (item) =>
+          (item.name === savedUsers.name &&
+            item.surname === savedUsers.surname) ||
+          item.email === savedUsers.email ||
+          item.phone === savedUsers.phone
+      );
 
-      if (!email || !isValidEmail(email)) {
-        errors.email = "Please enter a valid email address";
+      if (isDuplicate) {
+        alert("This user is existed");
       } else {
-        errors.email = "";
-        savedUser.email = email;
+        dispatch(postUser(savedUsers));
+        dispatch(setLoadingAddUser(true));
       }
 
-      if (!phone || !isValidTajikPhoneNumber(phone)) {
-        errors.phone = "Please enter a valid Tajik phone number";
-      } else {
-        errors.phone = "";
-        savedUser.phone = phone;
-      }
-      // formErrors = { ...state.formErrors, ...errors };
-
-      savedUser.city = city;
-      savedUser.status = status;
-      savedUser.id = id;
-      dispatch(setLoadingAddUser(true));
+      dispatch(setIsCorrectForm(false));
       setTimeout(() => {
         dispatch(setLoadingAddUser(false));
-      }, 4000);
+        dispatch(setModalAdd(false))
+      }, 2000);
+    } else {
+      dispatch(setIsCorrectForm(false));
     }
-
-  };
+  }, [isCorrectForm]);
 
   return (
     <React.Fragment>
@@ -171,8 +169,8 @@ export default function AddUserModal() {
                   : `border-gray-400`
               } px-2 py-1 rounded-[5px] outline-none text-[14px]`}
               value={firstName}
-              onChange={(event: React.ChangeEvent<HTMLInputElement>): void =>
-                setFirstName(event.target.value)
+              onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
+                dispatch(setFirstName(event.target.value))
               }
               onFocus={() => {
                 setValidation({ ...validation, firstName: false });
@@ -193,7 +191,8 @@ export default function AddUserModal() {
             {formErrors.name === "" && (
               <span
                 className={`text-red-500 ${
-                  validation.firstName && firstName.trim() === ""
+                  (validation.firstName && firstName.trim() === "") ||
+                  formErrors.name !== ""
                     ? `block`
                     : `hidden`
                 }`}
@@ -219,8 +218,8 @@ export default function AddUserModal() {
                   : `border-gray-400`
               } px-2 py-1 rounded-[5px] outline-none text-[14px]`}
               value={lastName}
-              onChange={(event: React.ChangeEvent<HTMLInputElement>): void =>
-                setLastName(event.target.value)
+              onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
+                dispatch(setLastName(event.target.value))
               }
               onFocus={() => {
                 setValidation({ ...validation, lastName: false });
@@ -268,8 +267,8 @@ export default function AddUserModal() {
                   : `border-gray-400`
               } px-2 py-1 rounded-[5px] outline-none text-[14px]`}
               value={email}
-              onChange={(event: React.ChangeEvent<HTMLInputElement>): void =>
-                setEmail(event.target.value)
+              onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
+                dispatch(setEmail(event.target.value))
               }
               onFocus={() => {
                 setValidation({ ...validation, email: false });
@@ -332,8 +331,8 @@ export default function AddUserModal() {
                   : `border-gray-400`
               } px-2 py-1 rounded-[5px] outline-none text-[14px]`}
               value={phone}
-              onChange={(event: React.ChangeEvent<HTMLInputElement>): void =>
-                setPhone(event.target.value)
+              onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
+                dispatch(setPhone(event.target.value))
               }
               onFocus={() => {
                 setValidation({ ...validation, phone: false });
@@ -378,8 +377,8 @@ export default function AddUserModal() {
                   : `border-gray-400`
               } px-2 py-1 rounded-[5px] outline-none text-[14px]`}
               value={city}
-              onChange={(event: React.ChangeEvent<HTMLInputElement>): void =>
-                setCity(event.target.value)
+              onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
+                dispatch(setCity(event.target.value))
               }
               onFocus={() => {
                 setValidation({ ...validation, city: false });
@@ -406,12 +405,12 @@ export default function AddUserModal() {
               </span>
             )}
           </div>
-          
+
           <button
             className="bg-red-500 text-[15px] px-5 py-1 rounded-lg text-white disabled:bg-red-400 mt-3"
             type="submit"
             disabled={loadingAddUser}
-            >
+          >
             {loadingAddUser ? `Loading...` : `ADD`}
           </button>
         </form>

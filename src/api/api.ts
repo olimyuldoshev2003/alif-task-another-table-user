@@ -27,6 +27,7 @@ export const postUser = createAsyncThunk(
   async (user: IUsers, {dispatch}) => {
     try {
       const { data } = await axios.post(import.meta.env.VITE_API_USERS, user);
+      console.log(data);
       
       dispatch(getUsers())
     } catch (error) {
