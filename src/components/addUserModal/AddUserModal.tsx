@@ -20,7 +20,7 @@ import { postUser } from "../../api/api";
 
 const Transition = React.forwardRef(function Transition(
   props: TransitionProps & {
-    children: React.ReactElement<any, any>;
+    children: React.ReactElement<HTMLElement>;
   },
   ref: React.Ref<unknown>
 ) {
@@ -78,7 +78,7 @@ export default function AddUserModal() {
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>): void => {
     event.preventDefault();
 
-    let newUser: IUsers = {
+    const newUser: IUsers = {
       id: `${Date.now()}`,
       name: firstName,
       surname: lastName,
